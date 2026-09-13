@@ -28,17 +28,32 @@ if (!defined('APP_NAME')) {
 // Compute BASE_PATH & BASE_URL dynamically
 if (!defined('BASE_PATH')) {
     $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-    
-    // Check if running under /campus-safety subdirectory (like in local XAMPP)
+
+    // Local XAMPP uses /campus-safety
     if (strpos($scriptName, '/campus-safety') !== false) {
         $basePath = '/campus-safety';
     } else {
         $basePath = '';
     }
+
     define('BASE_PATH', $basePath);
-    
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? 'https://' : 'http://';
+
+    // Detect HTTPS correctly behind Vercel/proxies
+    $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+
+    if (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
+        $forwardedProto === 'https' ||
+        getenv('VERCEL') === '1'
+    ) {
+        $protocol = 'https://';
+    } else {
+        $protocol = 'http://';
+    }
+
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
     define('BASE_URL', $protocol . $host . $basePath);
 }
 
