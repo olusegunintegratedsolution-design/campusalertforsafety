@@ -4,6 +4,8 @@
 -- Database: campus_safety_db
 -- ==========================================================
 
+CREATE DATABASE IF NOT EXISTS `campus_safety_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `campus_safety_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
