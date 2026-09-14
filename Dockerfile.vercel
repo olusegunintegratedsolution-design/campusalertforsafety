@@ -2,10 +2,18 @@ FROM dunglas/frankenphp:1-php8.4-alpine
 
 WORKDIR /app
 
-RUN install-php-extensions pdo_mysql
+# Install CA certificates and MySQL PDO extension
+RUN apk add --no-cache ca-certificates \
+    && install-php-extensions pdo_mysql
 
+# Copy project
 COPY . /app
 
+# Copy Caddy configuration
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# Vercel provides PORT, but use 80 as the container default
 ENV PORT=80
 
+# Start FrankenPHP
 CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
