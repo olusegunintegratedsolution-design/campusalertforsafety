@@ -72,6 +72,25 @@ require_once __DIR__ . '/includes/header.php';
             </p>
         </div>
 
+        <!-- Quick Demo Login Switcher Banner -->
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between text-xs font-bold text-amber-900">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-key text-amber-600"></i> Demo Testing Accounts</span>
+                <span class="text-[10px] bg-amber-200/80 px-2 py-0.5 rounded text-amber-900">One-Click Fill</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+                <button type="button" onclick="fillDemo('admin@ilaropoly.edu.ng', 'Admin@12345')" class="py-1.5 px-2 rounded-lg bg-white border border-amber-300 text-slate-800 font-bold hover:bg-amber-100/60 transition text-center shadow-xs">
+                    <span class="block text-[11px] text-fpi-800">Admin</span>
+                </button>
+                <button type="button" onclick="fillDemo('staff@ilaropoly.edu.ng', 'Staff@12345')" class="py-1.5 px-2 rounded-lg bg-white border border-amber-300 text-slate-800 font-bold hover:bg-amber-100/60 transition text-center shadow-xs">
+                    <span class="block text-[11px] text-fpi-800">Staff</span>
+                </button>
+                <button type="button" onclick="fillDemo('student@ilaropoly.edu.ng', 'Student@12345')" class="py-1.5 px-2 rounded-lg bg-white border border-amber-300 text-slate-800 font-bold hover:bg-amber-100/60 transition text-center shadow-xs">
+                    <span class="block text-[11px] text-fpi-800">Student</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Error box -->
         <?php if (!empty($errors)): ?>
         <div class="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs space-y-1 shadow-sm">
@@ -130,6 +149,10 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
+function fillDemo(email, pwd) {
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = pwd;
+}
 function togglePasswordVisibility() {
     const input = document.getElementById('password');
     const eye = document.getElementById('pwd-eye');
