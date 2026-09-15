@@ -229,6 +229,16 @@ require_once __DIR__ . '/../includes/header.php';
                     Enter Command Center
                 </button>
 
+                <div class="text-center mt-4">
+    <a
+        href="<?= e(BASE_URL) ?>/admin/reset-password.php"
+        class="text-sm font-semibold text-amber-700 hover:text-amber-800"
+    >
+        <i class="fa-solid fa-key mr-1"></i>
+        Administrator password recovery
+    </a>
+</div>
+
             </form>
 
             <div class="border-t border-slate-100 mt-6 pt-6 text-center">
