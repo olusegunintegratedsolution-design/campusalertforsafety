@@ -11,9 +11,9 @@ $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    if (!validate_csrf($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Invalid security request. Please refresh the page and try again.';
-    } else {
+    if (!validate_csrf()) {
+    $errors[] = 'Security token invalid or expired. Please submit the form again.';
+} else {
 
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
