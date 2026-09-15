@@ -10,11 +10,11 @@
  * - Vercel + FrankenPHP
  */
 
-/**
- * ---------------------------------------------------------
- * ENVIRONMENT VARIABLE HELPER
- * ---------------------------------------------------------
- */
+
+/* =========================================================
+   ENVIRONMENT VARIABLE HELPER
+   ========================================================= */
+
 function envValue(string $key, $default = null)
 {
     $value = getenv($key);
@@ -35,11 +35,10 @@ function envValue(string $key, $default = null)
 }
 
 
-/**
- * ---------------------------------------------------------
- * DATABASE CONFIGURATION
- * ---------------------------------------------------------
- */
+/* =========================================================
+   DATABASE CONFIGURATION
+   ========================================================= */
+
 if (!defined('DB_HOST')) {
     define('DB_HOST', envValue('DB_HOST', 'localhost'));
     define('DB_USER', envValue('DB_USER', 'root'));
@@ -50,40 +49,49 @@ if (!defined('DB_HOST')) {
 }
 
 
-/**
- * ---------------------------------------------------------
- * APPLICATION CONFIGURATION
- * ---------------------------------------------------------
- */
-if (!defined('APP_NAME')) {
-    define('APP_NAME', 'Campus Safety & Emergency Alert System');
-    define('INSTITUTION_NAME', 'Federal Polytechnic Ilaro');
-    define('INSTITUTION_ACRONYM', 'FPI');
+/* =========================================================
+   APPLICATION CONFIGURATION
+   ========================================================= */
 
-    define('EMERGENCY_HOTLINE', '+234 803 000 1199');
-    define('CLINIC_HOTLINE', '+234 802 555 4321');
+if (!defined('APP_NAME')) {
+    define(
+        'APP_NAME',
+        'Campus Safety & Emergency Alert System'
+    );
+
+    define(
+        'INSTITUTION_NAME',
+        'Federal Polytechnic Ilaro'
+    );
+
+    define(
+        'INSTITUTION_ACRONYM',
+        'FPI'
+    );
+
+    define(
+        'EMERGENCY_HOTLINE',
+        '+234 803 000 1199'
+    );
+
+    define(
+        'CLINIC_HOTLINE',
+        '+234 802 555 4321'
+    );
 }
 
 
-/**
- * ---------------------------------------------------------
- * VERCEL / HOST DETECTION
- * ---------------------------------------------------------
- */
+/* =========================================================
+   VERCEL DETECTION
+   ========================================================= */
+
 $isVercel = envValue('VERCEL', '0') === '1';
 
 
-/**
- * ---------------------------------------------------------
- * BASE PATH / BASE URL
- * ---------------------------------------------------------
- *
- * Local:
- * http://localhost/campus-safety
- *
- * Vercel:
- * https://campusalertforsafety.vercel.app
- */
+/* =========================================================
+   BASE PATH AND BASE URL
+   ========================================================= */
+
 if (!defined('BASE_PATH')) {
 
     $scriptName = str_replace(
@@ -93,9 +101,13 @@ if (!defined('BASE_PATH')) {
     );
 
     /*
-     * XAMPP project:
-     * http://localhost/campus-safety/
+     * Local XAMPP:
+     * http://localhost/campus-safety
+     *
+     * Vercel:
+     * https://your-project.vercel.app
      */
+
     if (strpos($scriptName, '/campus-safety') !== false) {
         $basePath = '/campus-safety';
     } else {
@@ -106,21 +118,28 @@ if (!defined('BASE_PATH')) {
 
 
     /*
-     * Vercel always uses HTTPS.
+     * Vercel is always HTTPS.
      *
-     * This prevents the HTTP -> HTTPS redirect loop
-     * that can happen behind Vercel's proxy.
+     * This prevents the redirect loop that can happen
+     * when Vercel's HTTPS proxy is detected as HTTP.
      */
+
     if ($isVercel) {
+
         $protocol = 'https://';
+
     } else {
+
         $https = $_SERVER['HTTPS'] ?? '';
 
         $isHttps =
             (!empty($https) && strtolower($https) !== 'off')
             ||
-            (isset($_SERVER['SERVER_PORT'])
-                && (int) $_SERVER['SERVER_PORT'] === 443);
+            (
+                isset($_SERVER['SERVER_PORT'])
+                &&
+                (int) $_SERVER['SERVER_PORT'] === 443
+            );
 
         $protocol = $isHttps
             ? 'https://'
@@ -137,35 +156,34 @@ if (!defined('BASE_PATH')) {
 }
 
 
-/**
- * ---------------------------------------------------------
- * SESSION CONFIGURATION
- * ---------------------------------------------------------
- */
+/* =========================================================
+   SESSION CONFIGURATION
+   ========================================================= */
+
 if (session_status() === PHP_SESSION_NONE) {
 
     /*
-     * Vercel containers are temporary.
-     * /tmp is writable and suitable for PHP sessions
-     * during the lifetime of the instance.
+     * Vercel containers are writable mainly through /tmp.
      */
-    if ($isVercel) {
-        $tmpSessionPath = sys_get_temp_dir();
 
-        if (is_dir($tmpSessionPath) && is_writable($tmpSessionPath)) {
-            session_save_path($tmpSessionPath);
+    if ($isVercel) {
+
+        $tmpPath = sys_get_temp_dir();
+
+        if (
+            is_dir($tmpPath)
+            &&
+            is_writable($tmpPath)
+        ) {
+            session_save_path($tmpPath);
         }
-    }
 
-    /*
-     * Secure session cookie on Vercel/HTTPS.
-     */
-    if ($isVercel) {
         ini_set(
             'session.cookie_secure',
             '1'
         );
     }
+
 
     ini_set(
         'session.cookie_httponly',
@@ -181,13 +199,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 
-/**
- * ---------------------------------------------------------
- * DATABASE CONNECTION
- * ---------------------------------------------------------
- *
- * @return PDO
- */
+/* =========================================================
+   DATABASE CONNECTION
+   ========================================================= */
+
 function getDB(): PDO
 {
     static $pdo = null;
@@ -195,16 +210,33 @@ function getDB(): PDO
     /*
      * Reuse existing connection.
      */
+
     if ($pdo !== null) {
         return $pdo;
     }
 
 
-    /**
-     * -----------------------------------------------------
-     * PDO DSN
-     * -----------------------------------------------------
+    /*
+     * IMPORTANT:
+     *
+     * This variable is defined INSIDE the function.
+     * Therefore there will be no:
+     *
+     * Undefined variable $isVercel
+     *
+     * warning.
      */
+
+    $isVercel = envValue(
+        'VERCEL',
+        '0'
+    ) === '1';
+
+
+    /* =====================================================
+       PDO CONNECTION STRING
+       ===================================================== */
+
     $dsn =
         'mysql:host=' . DB_HOST .
         ';port=' . DB_PORT .
@@ -212,11 +244,10 @@ function getDB(): PDO
         ';charset=' . DB_CHARSET;
 
 
-    /**
-     * -----------------------------------------------------
-     * PDO OPTIONS
-     * -----------------------------------------------------
-     */
+    /* =====================================================
+       PDO OPTIONS
+       ===================================================== */
+
     $options = [
 
         PDO::ATTR_ERRMODE =>
@@ -233,33 +264,34 @@ function getDB(): PDO
     ];
 
 
-    /**
-     * -----------------------------------------------------
-     * SSL / TLS
-     * -----------------------------------------------------
-     *
-     * TiDB Cloud requires secure TLS connections.
-     *
-     * On our Alpine/FrankenPHP Vercel container,
-     * the system CA bundle is:
-     *
-     * /etc/ssl/cert.pem
-     */
+    /* =====================================================
+       TIDB CLOUD SSL / TLS
+       ===================================================== */
+
     $dbSSL = strtolower(
-        (string) envValue('DB_SSL', 'false')
+        (string) envValue(
+            'DB_SSL',
+            'false'
+        )
     ) === 'true';
 
 
     /*
-     * Automatically enable SSL on Vercel.
+     * TiDB Cloud requires a secure TLS connection.
+     *
+     * Vercel + TiDB:
+     * TLS is automatically enabled.
+     *
+     * Localhost:
+     * TLS remains disabled unless DB_SSL=true.
      */
+
     if ($isVercel || $dbSSL) {
 
         /*
-         * Allow a custom CA path if supplied.
-         *
-         * Otherwise use Alpine's system CA bundle.
+         * Alpine Linux system CA certificate.
          */
+
         $sslCA = envValue(
             'DB_SSL_CA',
             '/etc/ssl/cert.pem'
@@ -267,8 +299,9 @@ function getDB(): PDO
 
 
         /*
-         * Only configure SSL CA if the file exists.
+         * Only use the CA file when it exists.
          */
+
         if (is_file($sslCA)) {
 
             $options[
@@ -276,9 +309,9 @@ function getDB(): PDO
             ] = $sslCA;
 
             /*
-             * IMPORTANT:
-             * Verify the TiDB server certificate.
+             * Verify TiDB Cloud's certificate.
              */
+
             $options[
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT
             ] = true;
@@ -286,11 +319,10 @@ function getDB(): PDO
     }
 
 
-    /**
-     * -----------------------------------------------------
-     * CONNECT
-     * -----------------------------------------------------
-     */
+    /* =====================================================
+       CONNECT TO DATABASE
+       ===================================================== */
+
     try {
 
         $pdo = new PDO(
@@ -305,14 +337,10 @@ function getDB(): PDO
     } catch (PDOException $e) {
 
 
-        /**
-         * -------------------------------------------------
-         * LOCAL XAMPP FALLBACK
-         * -------------------------------------------------
-         *
-         * If localhost database does not exist,
-         * create it automatically.
-         */
+        /* =================================================
+           LOCAL XAMPP DATABASE
+           ================================================= */
+
         if (
             DB_HOST === 'localhost'
             ||
@@ -322,8 +350,10 @@ function getDB(): PDO
             try {
 
                 /*
-                 * Connect without selecting database.
+                 * Connect to MySQL without selecting
+                 * a database first.
                  */
+
                 $rootDsn =
                     'mysql:host=' . DB_HOST .
                     ';port=' . DB_PORT .
@@ -331,6 +361,7 @@ function getDB(): PDO
 
 
                 $rootOptions = [
+
                     PDO::ATTR_ERRMODE =>
                         PDO::ERRMODE_EXCEPTION,
 
@@ -351,8 +382,9 @@ function getDB(): PDO
 
 
                 /*
-                 * Create database.
+                 * Safely create the local database.
                  */
+
                 $safeDatabaseName =
                     str_replace(
                         '`',
@@ -370,8 +402,9 @@ function getDB(): PDO
 
 
                 /*
-                 * Connect again to the new database.
+                 * Connect again using the database.
                  */
+
                 $pdo = new PDO(
                     $dsn,
                     DB_USER,
@@ -380,11 +413,11 @@ function getDB(): PDO
                 );
 
 
-                /**
-                 * -----------------------------------------
-                 * IMPORT LOCAL DATABASE SQL
-                 * -----------------------------------------
+                /*
+                 * Try to import the local SQL file
+                 * if it exists.
                  */
+
                 $sqlPath =
                     dirname(__DIR__) .
                     '/database/database.sql';
@@ -394,17 +427,26 @@ function getDB(): PDO
 
                     $sql = file_get_contents($sqlPath);
 
-                    if ($sql !== false && trim($sql) !== '') {
+                    if (
+                        $sql !== false
+                        &&
+                        trim($sql) !== ''
+                    ) {
 
                         /*
-                         * Remove CREATE DATABASE / USE statements
-                         * because the database is already selected.
+                         * Remove CREATE DATABASE statements.
                          */
+
                         $sql = preg_replace(
                             '/CREATE\s+DATABASE.*?;/is',
                             '',
                             $sql
                         );
+
+
+                        /*
+                         * Remove USE statements.
+                         */
 
                         $sql = preg_replace(
                             '/USE\s+[`a-zA-Z0-9_-]+.*?;/is',
@@ -414,8 +456,9 @@ function getDB(): PDO
 
 
                         /*
-                         * Execute SQL.
+                         * Execute the SQL.
                          */
+
                         $pdo->exec($sql);
                     }
                 }
@@ -437,6 +480,7 @@ function getDB(): PDO
                         border-radius:12px;
                         color:#991b1b;
                     ">
+
                         <h2 style="margin-top:0;">
                             Local Database Error
                         </h2>
@@ -449,7 +493,8 @@ function getDB(): PDO
                         </p>
 
                         <p>
-                            Please make sure XAMPP MySQL is running.
+                            Make sure MySQL is running
+                            in XAMPP.
                         </p>
 
                         <p>
@@ -459,17 +504,17 @@ function getDB(): PDO
                             ) .
                             '</small>
                         </p>
+
                     </div>'
                 );
             }
         }
 
 
-        /**
-         * -------------------------------------------------
-         * CLOUD DATABASE ERROR
-         * -------------------------------------------------
-         */
+        /* =================================================
+           CLOUD DATABASE ERROR
+           ================================================= */
+
         die(
             '<div style="
                 font-family:Arial,sans-serif;
@@ -487,8 +532,8 @@ function getDB(): PDO
                 </h2>
 
                 <p>
-                    Could not connect to the remote MySQL
-                    database.
+                    Could not connect to the remote
+                    MySQL database.
                 </p>
 
                 <p>
@@ -521,7 +566,7 @@ function getDB(): PDO
                 </p>
 
                 <p>
-                    Check your Vercel Environment Variables:
+                    Check these Vercel Environment Variables:
                 </p>
 
                 <ul>
