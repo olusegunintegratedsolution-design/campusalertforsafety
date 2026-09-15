@@ -220,15 +220,6 @@ INSERT INTO `campus_locations` (`name`, `category`, `latitude`, `longitude`, `de
 ('East Campus Main Gate', 'Gate', 6.8950000, 3.0195000, 'Primary vehicular entrance and security checkpoint'),
 ('West Campus Gate (Orita Road)', 'Gate', 6.8910000, 3.0130000, 'Pedestrian and secondary vehicular gate with security booth');
 
--- Seed Users
--- Password for all 3 demo accounts is: Admin@12345, Staff@12345, Student@12345
--- Using standard bcrypt hash:
--- Admin: $2y$10$tZ2yD8zP6p9B2eW5k0vJ2.cM1uO5Gk0uH5S0aR2hK7jV4t9L6xX6.O
--- (We will also provide a setup script that ensures the exact hashes for Admin@12345, Staff@12345, and Student@12345)
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `role`, `id_number`, `department`, `password`, `status`) VALUES
-(1, 'Engr. Babatunde Alabi', 'admin@ilaropoly.edu.ng', '08031234567', 'admin', 'FPI/SEC/ADM001', 'Chief Security Unit', '$2y$10$7663D76uM2T83O5r71KKeO5.n7OtxqYkG37p40g5xM18d5F6564mS', 'active'),
-(2, 'Dr. Mrs. Funmilayo Adeyemi', 'staff@ilaropoly.edu.ng', '08029876543', 'staff', 'FPI/STF/2019/402', 'Computer Science', '$2y$10$5jYk102gLw8m2X3e78yq5.d3M9pL5rQ8c1jZ62pZJkYqF9Yw6w3.K', 'active'),
-(3, 'Oluwaseun Emmanuel Adebayo', 'student@ilaropoly.edu.ng', '08145556677', 'student', 'FPI/CS/22/0194', 'Computer Science', '$2y$10$4hXj091fKv7l1W2d67xp4.c2L8oK4qP7b0iY51oYJjXpE8Xv5v2.J', 'active');
 
 -- Seed Emergency Contacts
 INSERT INTO `emergency_contacts` (`name`, `department`, `phone`, `alt_phone`, `email`, `availability`, `category`, `priority_order`) VALUES
@@ -380,3 +371,15 @@ INSERT INTO `system_logs` (`user_id`, `user_email`, `action`, `details`, `ip_add
 (1, 'admin@ilaropoly.edu.ng', 'ADMIN_LOGIN', 'Administrator logged into command console.', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 1 HOUR)),
 (1, 'admin@ilaropoly.edu.ng', 'ALERT_PUBLISHED', 'Broadcasted emergency alert for Science Complex Block B.', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 40 MINUTE)),
 (1, 'admin@ilaropoly.edu.ng', 'STATUS_UPDATE', 'Updated report CES-2026-00101 to In Progress.', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 25 MINUTE));
+
+-- ----------------------------------------------------------
+-- 11. Table: app_sessions
+-- Persistent PHP sessions for Vercel/TiDB deployments.
+-- The application also creates this table automatically if missing.
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `app_sessions` (
+  `session_id` VARCHAR(128) NOT NULL PRIMARY KEY,
+  `session_data` MEDIUMBLOB NOT NULL,
+  `last_activity` INT UNSIGNED NOT NULL,
+  INDEX `idx_app_sessions_activity` (`last_activity`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

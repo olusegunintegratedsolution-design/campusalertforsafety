@@ -33,7 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password   = $_POST['password'] ?? '';
         $confirmPwd = $_POST['confirm_password'] ?? '';
 
-        $formData = compact('name', 'email', 'phone', 'role', 'idNumber', 'department');
+        $formData = [
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'role' => $role,
+            'id_number' => $idNumber,
+            'department' => $department
+        ];
 
         // Validation
         if (empty($name) || strlen($name) < 3) {

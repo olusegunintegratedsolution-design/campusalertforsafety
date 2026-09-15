@@ -36,36 +36,20 @@ try {
     // Split queries by semicolon (basic) or execute multi-query
     $dbPdo->exec($sql);
     echo "      Schema and seed records imported successfully.\n";
+    // 4. Verify tables and record counts
 
-    // 4. Update demo user passwords to guaranteed bcrypt hashes for PHP 8.2
-    echo "[3/4] Ensuring demo account passwords match exact bcrypt credentials...\n";
-    $adminHash   = password_hash('Admin@12345', PASSWORD_BCRYPT);
-    $staffHash   = password_hash('Staff@12345', PASSWORD_BCRYPT);
-    $studentHash = password_hash('Student@12345', PASSWORD_BCRYPT);
-
-    $upAdmin = $dbPdo->prepare("UPDATE users SET password = ? WHERE email = 'admin@ilaropoly.edu.ng'");
-    $upAdmin->execute([$adminHash]);
-
-    $upStaff = $dbPdo->prepare("UPDATE users SET password = ? WHERE email = 'staff@ilaropoly.edu.ng'");
-    $upStaff->execute([$staffHash]);
-
-    $upStudent = $dbPdo->prepare("UPDATE users SET password = ? WHERE email = 'student@ilaropoly.edu.ng'");
-    $upStudent->execute([$studentHash]);
-
-    // 5. Verify tables and record counts
+    // 4. Verify tables and record counts
     echo "[4/4] Verifying database tables and records...\n";
-    $tables = ['users', 'campus_locations', 'emergency_reports', 'report_timeline', 'alerts', 'emergency_contacts', 'notifications', 'system_logs', 'system_settings'];
+    $tables = ['users', 'campus_locations', 'emergency_reports', 'report_timeline', 'alerts', 'emergency_contacts', 'notifications', 'system_logs', 'system_settings', 'app_sessions'];
     foreach ($tables as $tbl) {
         $count = $dbPdo->query("SELECT COUNT(*) FROM `$tbl`")->fetchColumn();
         echo "      - Table `$tbl`: $count rows\n";
     }
-
-    echo "\n=== SUCCESS: Database initialization complete! ===\n";
-    echo "Demo Credentials:\n";
-    echo "  [Admin]   Email: admin@ilaropoly.edu.ng   Password: Admin@12345\n";
-    echo "  [Staff]   Email: staff@ilaropoly.edu.ng   Password: Staff@12345\n";
-    echo "  [Student] Email: student@ilaropoly.edu.ng Password: Student@12345\n";
-
+    echo "
+=== SUCCESS: Database initialization complete! ===
+";
+    echo "Administrator credentials are configured through Vercel Environment Variables.
+";
 } catch (Exception $e) {
     echo "\n[ERROR] Setup failed: " . $e->getMessage() . "\n";
     exit(1);

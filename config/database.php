@@ -160,41 +160,120 @@ if (!defined('BASE_PATH')) {
    SESSION CONFIGURATION
    ========================================================= */
 
-if (session_status() === PHP_SESSION_NONE) {
+/*
+ * Vercel can route different HTTP requests to different container
+ * instances. File-based PHP sessions stored in /tmp are therefore
+ * not reliable for authentication or CSRF tokens.
+ *
+ * Store PHP sessions in TiDB instead so the same session is available
+ * on every request/container. The table is created automatically and
+ * does not affect the existing application tables.
+ */
+class CESDatabaseSessionHandler implements SessionHandlerInterface
+{
+    private ?PDO $pdo = null;
+    private bool $tableReady = false;
 
-    /*
-     * Vercel containers are writable mainly through /tmp.
-     */
-
-    if ($isVercel) {
-
-        $tmpPath = sys_get_temp_dir();
-
-        if (
-            is_dir($tmpPath)
-            &&
-            is_writable($tmpPath)
-        ) {
-            session_save_path($tmpPath);
+    private function db(): PDO
+    {
+        if ($this->pdo === null) {
+            $this->pdo = getDB();
         }
 
-        ini_set(
-            'session.cookie_secure',
-            '1'
-        );
+        if (!$this->tableReady) {
+            $this->pdo->exec(
+                "CREATE TABLE IF NOT EXISTS `app_sessions` (
+                    `session_id` VARCHAR(128) NOT NULL PRIMARY KEY,
+                    `session_data` MEDIUMBLOB NOT NULL,
+                    `last_activity` INT UNSIGNED NOT NULL,
+                    INDEX `idx_app_sessions_activity` (`last_activity`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+            $this->tableReady = true;
+        }
+
+        return $this->pdo;
     }
 
+    public function open(string $path, string $name): bool
+    {
+        try {
+            $this->db();
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
 
-    ini_set(
-        'session.cookie_httponly',
-        '1'
-    );
+    public function close(): bool
+    {
+        return true;
+    }
 
-    ini_set(
-        'session.cookie_samesite',
-        'Lax'
-    );
+    public function read(string $id): string|false
+    {
+        try {
+            $stmt = $this->db()->prepare(
+                'SELECT session_data FROM app_sessions WHERE session_id = ? LIMIT 1'
+            );
+            $stmt->execute([$id]);
+            $data = $stmt->fetchColumn();
+            return $data === false ? '' : (string)$data;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
 
+    public function write(string $id, string $data): bool
+    {
+        try {
+            $stmt = $this->db()->prepare(
+                'INSERT INTO app_sessions (session_id, session_data, last_activity)
+                 VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE session_data = VALUES(session_data), last_activity = VALUES(last_activity)'
+            );
+            return $stmt->execute([$id, $data, time()]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    public function destroy(string $id): bool
+    {
+        try {
+            $stmt = $this->db()->prepare(
+                'DELETE FROM app_sessions WHERE session_id = ?'
+            );
+            return $stmt->execute([$id]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    public function gc(int $max_lifetime): int|false
+    {
+        try {
+            $stmt = $this->db()->prepare(
+                'DELETE FROM app_sessions WHERE last_activity < ?'
+            );
+            $stmt->execute([time() - $max_lifetime]);
+            return $stmt->rowCount();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_samesite', 'Lax');
+
+    if ($isVercel) {
+        ini_set('session.cookie_secure', '1');
+    }
+
+    $sessionHandler = new CESDatabaseSessionHandler();
+    session_set_save_handler($sessionHandler, true);
     session_start();
 }
 
