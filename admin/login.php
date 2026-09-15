@@ -1,3 +1,4 @@
+```php
 <?php
 /**
  * Federal Polytechnic Ilaro
@@ -8,12 +9,6 @@
 
 require_once __DIR__ . '/../includes/auth.php';
 
-/*
-|--------------------------------------------------------------------------
-| If already logged in as admin, go straight to dashboard
-|--------------------------------------------------------------------------
-*/
-
 if (is_logged_in() && is_admin()) {
     header('Location: ' . BASE_URL . '/admin/dashboard.php');
     exit;
@@ -22,20 +17,14 @@ if (is_logged_in() && is_admin()) {
 $errors = [];
 $email = '';
 
-/*
-|--------------------------------------------------------------------------
-| Process Login
-|--------------------------------------------------------------------------
-*/
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!validate_csrf()) {
         $errors[] = 'Security token invalid or expired. Please refresh the page.';
     } else {
 
-        $email = strtolower(trim($_POST['email'] ?? ''));
-        $password = $_POST['password'] ?? '';
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
+        $password = (string)($_POST['password'] ?? '');
 
         if ($email === '') {
             $errors[] = 'Please enter your administrator email.';
@@ -52,47 +41,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo = getDB();
 
                 /*
-                |--------------------------------------------------------------------------
-                | Only the designated administrator account is allowed
-                |--------------------------------------------------------------------------
-                */
+                 * IMPORTANT:
+                 * First find the account by email ONLY.
+                 *
+                 * We deliberately do not put role/status in this query.
+                 * That lets us determine whether the problem is:
+                 * - account missing
+                 * - wrong role
+                 * - inactive account
+                 * - wrong password
+                 */
 
                 $stmt = $pdo->prepare("
                     SELECT *
                     FROM users
-                    WHERE email = ?
-                      AND role = 'admin'
-                      AND status = 'active'
+                    WHERE LOWER(TRIM(email)) = ?
                     LIMIT 1
                 ");
 
-                $stmt->execute([
-                    $email
-                ]);
+                $stmt->execute([$email]);
 
                 $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                /*
-                |--------------------------------------------------------------------------
-                | Check administrator account
-                |--------------------------------------------------------------------------
-                */
-
                 if (!$admin) {
 
-                    $errors[] = 'Invalid administrator credentials.';
+                    $errors[] = 'DEBUG: Administrator email was not found in the database.';
 
-                } elseif (!password_verify($password, $admin['password'])) {
+                } elseif (strtolower(trim((string)$admin['role'])) !== 'admin') {
 
-                    $errors[] = 'Invalid administrator credentials.';
+                    $errors[] = 'DEBUG: Account exists, but its role is "' .
+                        e((string)$admin['role']) .
+                        '". It must be "admin".';
+
+                } elseif (strtolower(trim((string)$admin['status'])) !== 'active') {
+
+                    $errors[] = 'DEBUG: Administrator account exists, but status is "' .
+                        e((string)$admin['status']) .
+                        '". It must be "active".';
+
+                } elseif (empty($admin['password'])) {
+
+                    $errors[] = 'DEBUG: Administrator password field is empty.';
+
+                } elseif (!password_verify($password, (string)$admin['password'])) {
+
+                    $errors[] = 'DEBUG: Administrator account was found, but the password does not match the stored password hash.';
 
                 } else {
 
                     /*
-                    |--------------------------------------------------------------------------
-                    | Successful administrator login
-                    |--------------------------------------------------------------------------
-                    */
+                     * SUCCESS
+                     */
 
                     login_user($admin);
 
@@ -111,10 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Throwable $e) {
 
                 /*
-                | Do not expose database errors to the public.
-                */
+                 * TEMPORARY DIAGNOSTIC MESSAGE.
+                 *
+                 * After the login is working, replace this with the
+                 * generic production message.
+                 */
 
-                $errors[] = 'Unable to process administrator login.';
+                $errors[] = 'DEBUG DATABASE ERROR: ' . $e->getMessage();
             }
         }
     }
@@ -129,14 +131,10 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div class="max-w-md w-full">
 
-        <!-- Header -->
-
         <div class="text-center mb-8">
 
             <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-700 flex items-center justify-center shadow-lg">
-
                 <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
-
             </div>
 
             <h1 class="text-3xl font-black text-slate-900">
@@ -149,18 +147,15 @@ require_once __DIR__ . '/../includes/header.php';
 
         </div>
 
-
-        <!-- Errors -->
-
         <?php if (!empty($errors)): ?>
 
             <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
 
                 <?php foreach ($errors as $error): ?>
 
-                    <div class="flex items-center gap-2 text-sm">
+                    <div class="flex items-start gap-2 text-sm mb-2 last:mb-0">
 
-                        <i class="fa-solid fa-circle-xmark"></i>
+                        <i class="fa-solid fa-circle-xmark mt-0.5"></i>
 
                         <span>
                             <?= e($error) ?>
@@ -174,21 +169,15 @@ require_once __DIR__ . '/../includes/header.php';
 
         <?php endif; ?>
 
-
-        <!-- Login Card -->
-
         <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-8">
 
             <form
                 method="POST"
-                action="<?= BASE_URL ?>/admin/login.php"
+                action="<?= e(BASE_URL) ?>/admin/login.php"
                 class="space-y-6"
             >
 
                 <?= csrf_field() ?>
-
-
-                <!-- Email -->
 
                 <div>
 
@@ -212,9 +201,6 @@ require_once __DIR__ . '/../includes/header.php';
 
                 </div>
 
-
-                <!-- Password -->
-
                 <div>
 
                     <label
@@ -236,27 +222,20 @@ require_once __DIR__ . '/../includes/header.php';
 
                 </div>
 
-
-                <!-- Submit -->
-
                 <button
                     type="submit"
                     class="w-full py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition"
                 >
-
                     <i class="fa-solid fa-right-to-bracket mr-2"></i>
-
                     Enter Command Center
-
                 </button>
 
             </form>
 
-
             <div class="border-t border-slate-100 mt-6 pt-6 text-center">
 
                 <a
-                    href="<?= BASE_URL ?>/login.php"
+                    href="<?= e(BASE_URL) ?>/login.php"
                     class="text-sm font-semibold text-slate-600 hover:text-emerald-700"
                 >
                     ← Back to normal login
@@ -271,3 +250,4 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
+```
